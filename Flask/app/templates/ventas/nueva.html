@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+{% block title %}Nueva Venta — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-cart-plus"></i> Nueva Venta</h2>
+</div>
+
+<div class="row g-3" style="height:calc(100vh - 160px)">
+  <!-- Left: Product search -->
+  <div class="col-md-5">
+    <div class="pos-panel">
+      <h6 class="fw-bold mb-3"><i class="bi bi-search"></i> Buscar Producto</h6>
+      <input type="text" id="searchInput" class="form-control mb-2"
+             placeholder="Nombre o código de barras..." autocomplete="off">
+      <div id="searchResults"></div>
+
+      <hr class="my-3">
+      <h6 class="fw-bold mb-2"><i class="bi bi-person"></i> Cliente (opcional)</h6>
+      <select id="clienteSelect" class="form-select">
+        <option value="">— Público en general —</option>
+        {% for c in clientes %}
+          <option value="{{ c.id }}">{{ c.razon_social }} ({{ c.rfc }})</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- Right: Cart -->
+  <div class="col-md-7">
+    <div class="pos-panel d-flex flex-column">
+      <h6 class="fw-bold mb-3"><i class="bi bi-basket"></i> Carrito</h6>
+
+      <div class="flex-grow-1 overflow-auto">
+        <table class="table table-sm align-middle" id="cartTable">
+          <thead class="table-dark">
+            <tr>
+              <th>Producto</th>
+              <th class="text-center" style="width:90px">Cant.</th>
+              <th class="text-end">Precio</th>
+              <th class="text-end">Subtotal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cartBody"></tbody>
+        </table>
+        <p id="cartEmpty" class="text-center text-muted mt-4">
+          <i class="bi bi-cart fs-3 d-block mb-2"></i>El carrito está vacío
+        </p>
+      </div>
+
+      <!-- Totals -->
+      <div class="border-top pt-3 mt-2">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">Subtotal:</span>
+          <span id="subtotalDisplay">$0.00</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">IVA (16%):</span>
+          <span id="ivaDisplay">$0.00</span>
+        </div>
+        <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
+          <span>TOTAL:</span>
+          <span id="totalDisplay" class="text-danger">$0.00</span>
+        </div>
+
+        <!-- Payment -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-bold">Método de Pago</label>
+            <div class="btn-group w-100" role="group">
+              <input type="radio" class="btn-check" name="metodoPago"
+                     id="pagoEfectivo" value="Efectivo" checked>
+              <label class="btn btn-outline-success" for="pagoEfectivo">
+                <i class="bi bi-cash"></i> Efectivo
+              </label>
+              <input type="radio" class="btn-check" name="metodoPago"
+                     id="pagoTarjeta" value="Tarjeta">
+              <label class="btn btn-outline-primary" for="pagoTarjeta">
+                <i class="bi bi-credit-card"></i> Tarjeta
+              </label>
+            </div>
+          </div>
+          <div class="col-6" id="efectivoSection">
+            <label class="form-label small fw-bold">Monto Recibido</label>
+            <input type="number" id="montoRecibido" class="form-control"
+                   step="0.01" min="0" placeholder="0.00">
+            <small class="text-success fw-bold" id="cambioDisplay"></small>
+          </div>
+        </div>
+
+        <button id="cobrarBtn" class="btn btn-danger w-100 py-2 fs-5 fw-bold"
+                disabled>
+          <i class="bi bi-cash-coin"></i> Cobrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="bi bi-check-circle"></i> Venta Completada</h5>
+      </div>
+      <div class="modal-body text-center">
+        <p class="fs-5" id="modalFolio"></p>
+        <p class="text-muted" id="modalTotal"></p>
+        <p class="text-success fw-bold" id="modalCambio"></p>
+      </div>
+      <div class="modal-footer">
+        <a id="ticketLink" href="#" target="_blank" class="btn btn-outline-secondary">
+          <i class="bi bi-printer"></i> Imprimir Ticket
+        </a>
+        <button class="btn btn-success" onclick="resetPOS()">
+          <i class="bi bi-plus-circle"></i> Nueva Venta
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const cart = {};
+
+// ── Product search ────────────────────────────────────────────
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+let searchTimeout;
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  const q = searchInput.value.trim();
+  if (q.length < 2) { searchResults.innerHTML = ''; return; }
+  searchTimeout = setTimeout(() => fetchProducts(q), 300);
+});
+
+async function fetchProducts(q) {
+  const res = await fetch(`/ventas/buscar-producto?q=${encodeURIComponent(q)}`);
+  const products = await res.json();
+  searchResults.innerHTML = products.length
+    ? products.map(p => `
+        <div class="product-result-item" onclick='addToCart(${JSON.stringify(p)})'>
+          <div class="fw-bold">${p.nombre}</div>
+          <div class="d-flex justify-content-between">
+            <small class="text-muted">${p.codigo_barras || 'Sin código'}</small>
+            <small class="text-success fw-bold">$${p.precio_venta.toFixed(2)}</small>
+            <small class="text-muted">Stock: ${p.stock_actual}</small>
+          </div>
+        </div>`).join('')
+    : '<p class="text-muted text-center small mt-2">Sin resultados</p>';
+}
+
+// ── Cart logic ────────────────────────────────────────────────
+function addToCart(product) {
+  if (product.stock_actual <= 0) {
+    alert('Sin stock disponible para este producto.');
+    return;
+  }
+  if (cart[product.id]) {
+    if (cart[product.id].qty >= product.stock_actual) {
+      alert('No hay más stock disponible.');
+      return;
+    }
+    cart[product.id].qty++;
+  } else {
+    cart[product.id] = { ...product, qty: 1 };
+  }
+  renderCart();
+  searchInput.value = '';
+  searchResults.innerHTML = '';
+}
+
+function removeFromCart(id) {
+  delete cart[id];
+  renderCart();
+}
+
+function updateQty(id, val) {
+  const qty = parseInt(val);
+  if (qty <= 0) { removeFromCart(id); return; }
+  if (qty > cart[id].stock_actual) {
+    alert('Stock insuficiente.'); return;
+  }
+  cart[id].qty = qty;
+  renderCart();
+}
+
+function renderCart() {
+  const tbody = document.getElementById('cartBody');
+  const empty = document.getElementById('cartEmpty');
+  const items = Object.values(cart);
+
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    document.getElementById('cobrarBtn').disabled = true;
+    updateTotals(0);
+    return;
+  }
+
+  empty.style.display = 'none';
+  document.getElementById('cobrarBtn').disabled = false;
+  tbody.innerHTML = items.map(item => `
+    <tr>
+      <td>${item.nombre}</td>
+      <td class="text-center">
+        <input type="number" value="${item.qty}" min="1" max="${item.stock_actual}"
+               class="form-control form-control-sm text-center"
+               style="width:70px"
+               onchange="updateQty(${item.id}, this.value)">
+      </td>
+      <td class="text-end">$${item.precio_venta.toFixed(2)}</td>
+      <td class="text-end fw-bold">$${(item.precio_venta * item.qty).toFixed(2)}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${item.id})">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>`).join('');
+
+  const subtotal = items.reduce((s, i) => s + i.precio_venta * i.qty, 0);
+  updateTotals(subtotal);
+}
+
+function updateTotals(subtotal) {
+  const iva = subtotal * 0.16;
+  const total = subtotal + iva;
+  document.getElementById('subtotalDisplay').textContent = `$${subtotal.toFixed(2)}`;
+  document.getElementById('ivaDisplay').textContent = `$${iva.toFixed(2)}`;
+  document.getElementById('totalDisplay').textContent = `$${total.toFixed(2)}`;
+  updateCambio();
+}
+
+function updateCambio() {
+  const totalText = document.getElementById('totalDisplay').textContent;
+  const total = parseFloat(totalText.replace('$', '')) || 0;
+  const recibido = parseFloat(document.getElementById('montoRecibido').value) || 0;
+  const cambio = recibido - total;
+  const display = document.getElementById('cambioDisplay');
+  if (recibido > 0) {
+    display.textContent = cambio >= 0
+      ? `Cambio: $${cambio.toFixed(2)}`
+      : `Falta: $${Math.abs(cambio).toFixed(2)}`;
+    display.className = cambio >= 0 ? 'text-success fw-bold small' : 'text-danger fw-bold small';
+  } else {
+    display.textContent = '';
+  }
+}
+
+document.getElementById('montoRecibido').addEventListener('input', updateCambio);
+
+document.querySelectorAll('[name="metodoPago"]').forEach(r => {
+  r.addEventListener('change', e => {
+    document.getElementById('efectivoSection').style.display =
+      e.target.value === 'Efectivo' ? 'block' : 'none';
+  });
+});
+
+// ── Submit ────────────────────────────────────────────────────
+document.getElementById('cobrarBtn').addEventListener('click', async () => {
+  const items = Object.values(cart).map(i => ({
+    producto_id: i.id,
+    cantidad: i.qty,
+    precio_unitario: i.precio_venta,
+    subtotal: i.precio_venta * i.qty,
+  }));
+
+  const metodoPago = document.querySelector('[name="metodoPago"]:checked').value;
+  const montoRecibido = parseFloat(document.getElementById('montoRecibido').value) || 0;
+  const clienteId = document.getElementById('clienteSelect').value || null;
+
+  const payload = { items, metodo_pago: metodoPago, monto_recibido: montoRecibido, cliente_id: clienteId };
+
+  try {
+    const res = await fetch('/ventas/nueva', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('modalFolio').textContent = `Folio: ${data.folio}`;
+      document.getElementById('modalTotal').textContent = `Total cobrado: $${data.total.toFixed(2)}`;
+      document.getElementById('modalCambio').textContent =
+        metodoPago === 'Efectivo' ? `Cambio: $${data.cambio.toFixed(2)}` : '';
+      document.getElementById('ticketLink').href = data.ticket_url;
+      new bootstrap.Modal(document.getElementById('successModal')).show();
+    } else {
+      alert(data.error || 'Error al procesar la venta.');
+    }
+  } catch (e) {
+    alert('Error de conexión.');
+  }
+});
+
+function resetPOS() {
+  location.reload();
+}
+</script>
+{% endblock %}

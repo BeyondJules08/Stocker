@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Cierre de Caja — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-cash-stack"></i> Cierre de Caja — {{ hoy.strftime('%d/%m/%Y') }}</h2>
+  <a href="{{ url_for('cierre.index') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Cancelar
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-dark text-white">
+        <i class="bi bi-calculator"></i> Resumen del Día (automático)
+      </div>
+      <div class="card-body">
+        <div class="row g-3 mb-4">
+          <div class="col-6">
+            <div class="stat-card">
+              <div class="label"><i class="bi bi-cash"></i> Ventas en Efectivo</div>
+              <div class="value" id="efectivoSistema">${{ '%.2f'|format(total_efectivo) }}</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-card">
+              <div class="label"><i class="bi bi-credit-card"></i> Ventas con Tarjeta</div>
+              <div class="value">${{ '%.2f'|format(total_tarjeta) }}</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-card">
+              <div class="label"><i class="bi bi-currency-dollar"></i> Total Ventas</div>
+              <div class="value">${{ '%.2f'|format(total_ventas) }}</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-card">
+              <div class="label"><i class="bi bi-hash"></i> Transacciones</div>
+              <div class="value">{{ num_transacciones }}</div>
+            </div>
+          </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('cierre.procesar_cierre') }}">
+          <div class="mb-3">
+            <label class="form-label fw-bold">
+              <i class="bi bi-cash-coin"></i> Efectivo Contado en Caja
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" name="efectivo_contado" id="efectivoContado"
+                     class="form-control form-control-lg"
+                     step="0.01" min="0" required placeholder="0.00"
+                     oninput="calcDiferencia()">
+            </div>
+          </div>
+
+          <div class="alert mb-3 d-none" id="diferenciaAlert">
+            <strong>Diferencia:</strong> <span id="diferenciaVal"></span>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-bold">Observaciones / Nota</label>
+            <textarea name="nota" class="form-control" rows="3"
+                      placeholder="Observaciones del cierre..."></textarea>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-danger btn-lg">
+              <i class="bi bi-lock"></i> Registrar Cierre de Caja
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const efectivoSistema = {{ total_efectivo }};
+
+function calcDiferencia() {
+  const contado = parseFloat(document.getElementById('efectivoContado').value) || 0;
+  const diff = contado - efectivoSistema;
+  const alert = document.getElementById('diferenciaAlert');
+  const val = document.getElementById('diferenciaVal');
+
+  alert.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning');
+  val.textContent = `$${diff.toFixed(2)}`;
+
+  if (diff === 0) {
+    alert.classList.add('alert-success');
+    val.textContent += ' ✓ Cuadre perfecto';
+  } else if (diff < 0) {
+    alert.classList.add('alert-danger');
+    val.textContent += ' ⚠ Faltante';
+  } else {
+    alert.classList.add('alert-warning');
+    val.textContent += ' ↑ Sobrante';
+  }
+}
+</script>
+{% endblock %}

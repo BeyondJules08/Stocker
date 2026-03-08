@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Productos — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-box"></i> Catálogo de Productos</h2>
+  <a href="{{ url_for('inventario.producto_nuevo') }}" class="btn btn-danger">
+    <i class="bi bi-plus-circle"></i> Nuevo Producto
+  </a>
+</div>
+
+<div class="table-card">
+  <table class="table table-hover align-middle" id="productosTable">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Código</th>
+        <th>Categoría</th>
+        <th class="text-center">Stock</th>
+        <th class="text-center">Mínimo</th>
+        <th class="text-end">P. Compra</th>
+        <th class="text-end">P. Venta</th>
+        <th class="text-center">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in productos %}
+      <tr>
+        <td class="fw-bold">{{ p.nombre }}</td>
+        <td><code>{{ p.codigo_barras or '—' }}</code></td>
+        <td><span class="badge bg-secondary">{{ p.categoria.nombre }}</span></td>
+        <td class="text-center
+          {% if p.stock_bajo %}stock-low{% else %}stock-ok{% endif %}">
+          {{ p.stock_actual }}
+          {% if p.stock_bajo %}
+            <i class="bi bi-exclamation-triangle-fill text-danger ms-1"></i>
+          {% endif %}
+        </td>
+        <td class="text-center">{{ p.stock_minimo }}</td>
+        <td class="text-end">${{ '%.2f'|format(p.precio_compra|float) }}</td>
+        <td class="text-end fw-bold">${{ '%.2f'|format(p.precio_venta|float) }}</td>
+        <td class="text-center">
+          <a href="{{ url_for('inventario.producto_editar', pid=p.id) }}"
+             class="btn btn-sm btn-outline-primary me-1">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="{{ url_for('inventario.producto_eliminar', pid=p.id) }}"
+                class="d-inline"
+                onsubmit="return confirm('¿Desactivar este producto?')">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">
+          <i class="bi bi-inbox fs-4"></i><br>No hay productos registrados.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

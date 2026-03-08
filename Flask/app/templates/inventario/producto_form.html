@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if producto else 'Nuevo' }} Producto — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>
+    <i class="bi bi-box"></i>
+    {{ 'Editar Producto' if producto else 'Nuevo Producto' }}
+  </h2>
+  <a href="{{ url_for('inventario.productos') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-bold">Nombre del Producto *</label>
+              <input type="text" name="nombre" class="form-control" required
+                     value="{{ producto.nombre if producto else '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Descripción</label>
+              <textarea name="descripcion" class="form-control" rows="2">{{ producto.descripcion if producto else '' }}</textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Código de Barras</label>
+              <input type="text" name="codigo_barras" class="form-control"
+                     value="{{ producto.codigo_barras if producto else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Categoría *</label>
+              <select name="categoria_id" class="form-select" required>
+                {% for cat in categorias %}
+                  <option value="{{ cat.id }}"
+                    {% if producto and producto.categoria_id == cat.id %}selected{% endif %}>
+                    {{ cat.nombre }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Precio de Compra *</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="precio_compra" class="form-control"
+                       step="0.01" min="0" required
+                       value="{{ '%.2f'|format(producto.precio_compra|float) if producto else '' }}">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Precio de Venta *</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="precio_venta" class="form-control"
+                       step="0.01" min="0" required
+                       value="{{ '%.2f'|format(producto.precio_venta|float) if producto else '' }}">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Stock Actual</label>
+              <input type="number" name="stock_actual" class="form-control" min="0"
+                     value="{{ producto.stock_actual if producto else 0 }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Stock Mínimo (alerta)</label>
+              <input type="number" name="stock_minimo" class="form-control" min="0"
+                     value="{{ producto.stock_minimo if producto else 5 }}">
+            </div>
+            <div class="col-12 d-grid">
+              <button type="submit" class="btn btn-danger btn-lg">
+                <i class="bi bi-floppy"></i>
+                {{ 'Actualizar Producto' if producto else 'Guardar Producto' }}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

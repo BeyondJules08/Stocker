@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  flask:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: mysql+pymysql://stocker:stocker123@db:3306/stocker
+      SECRET_KEY: stocker-flask-secret-2024
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - flask_uploads:/app/app/static/uploads
+      - flask_docs:/app/app/static/documentos
+    restart: unless-stopped
+
+  db:
+    image: docker.io/library/mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: stocker
+      MYSQL_USER: stocker
+      MYSQL_PASSWORD: stocker123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "stocker", "-pstocker123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  flask_uploads:
+  flask_docs:

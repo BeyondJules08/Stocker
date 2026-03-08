@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if proveedor else 'Nuevo' }} Proveedor — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>
+    <i class="bi bi-truck"></i>
+    {{ 'Editar Proveedor' if proveedor else 'Nuevo Proveedor' }}
+  </h2>
+  <a href="{{ url_for('inventario.proveedores') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-bold">Nombre *</label>
+              <input type="text" name="nombre" class="form-control" required
+                     value="{{ proveedor.nombre if proveedor else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">RFC *</label>
+              <input type="text" name="rfc" class="form-control" required
+                     maxlength="13" style="text-transform:uppercase"
+                     value="{{ proveedor.rfc if proveedor else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Teléfono</label>
+              <input type="text" name="telefono" class="form-control"
+                     value="{{ proveedor.telefono if proveedor else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Correo electrónico</label>
+              <input type="email" name="email" class="form-control"
+                     value="{{ proveedor.email if proveedor else '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Dirección</label>
+              <input type="text" name="direccion" class="form-control"
+                     value="{{ proveedor.direccion if proveedor else '' }}">
+            </div>
+            <div class="col-12 d-grid">
+              <button type="submit" class="btn btn-danger btn-lg">
+                <i class="bi bi-floppy"></i>
+                {{ 'Actualizar' if proveedor else 'Guardar Proveedor' }}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

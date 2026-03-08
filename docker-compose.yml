@@ -1,0 +1,104 @@
+version: '3.9'
+
+# ============================================================
+# Stocker — Compose principal
+# Levanta: MySQL compartido + Flask (puerto 5000) + Laravel/Nginx (puerto 8080)
+#
+# Uso:
+#   docker compose up -d --build
+#
+# Después del primer arranque, corre las contraseñas del Flask:
+#   docker compose exec flask python seed_passwords.py
+#
+# Y migra/siembra Laravel:
+#   docker compose exec laravel php artisan migrate --force
+#   docker compose exec laravel php artisan db:seed
+#   docker compose exec laravel php artisan key:generate
+# ============================================================
+
+services:
+
+  # ── Shared MySQL ───────────────────────────────────────────
+  db:
+    image: docker.io/library/mysql:8.0
+    container_name: stocker_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: stocker
+      MYSQL_USER: stocker
+      MYSQL_PASSWORD: stocker123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "stocker", "-pstocker123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+
+  # ── Flask — Usuario Operativo + Encargado de Almacén ───────
+  flask:
+    build:
+      context: ./Flask
+      dockerfile: Dockerfile
+    container_name: stocker_flask
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: mysql+pymysql://stocker:stocker123@db:3306/stocker
+      SECRET_KEY: stocker-flask-secret-2024
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - flask_uploads:/app/app/static/uploads
+      - flask_docs:/app/app/static/documentos
+    restart: unless-stopped
+
+  # ── Laravel PHP-FPM — Panel Gerencial ──────────────────────
+  laravel:
+    build:
+      context: ./Laravel/stocker-admin
+      dockerfile: Dockerfile
+    container_name: stocker_laravel
+    environment:
+      APP_NAME: Stocker
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8080
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: stocker
+      DB_USERNAME: stocker
+      DB_PASSWORD: stocker123
+      SESSION_DRIVER: file
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - laravel_storage:/var/www/storage
+    restart: unless-stopped
+
+  # ── Nginx — proxy para Laravel ─────────────────────────────
+  nginx:
+    image: docker.io/library/nginx:alpine
+    container_name: stocker_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./Laravel/stocker-admin:/var/www
+      - ./Laravel/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - laravel
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  flask_uploads:
+  flask_docs:
+  laravel_storage:

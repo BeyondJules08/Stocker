@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Facturas — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-file-earmark-text"></i> Facturas Emitidas</h2>
+  <a href="{{ url_for('facturas.pendientes') }}" class="btn btn-danger">
+    <i class="bi bi-hourglass-split"></i> Ventas por Facturar
+  </a>
+</div>
+
+<div class="table-card">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Folio Fiscal</th>
+        <th>Fecha</th>
+        <th>Cliente</th>
+        <th class="text-end">Subtotal</th>
+        <th class="text-end">IVA</th>
+        <th class="text-end">Total</th>
+        <th class="text-center">Descargas</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in facturas %}
+      <tr>
+        <td>
+          <a href="{{ url_for('facturas.detalle', factura_id=f.id) }}" class="text-decoration-none">
+            <code>{{ f.folio_fiscal[:16] }}...</code>
+          </a>
+        </td>
+        <td>{{ f.fecha_emision.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ f.cliente.razon_social }}<br>
+            <small class="text-muted">{{ f.cliente.rfc }}</small></td>
+        <td class="text-end">${{ '%.2f'|format(f.subtotal|float) }}</td>
+        <td class="text-end">${{ '%.2f'|format(f.iva|float) }}</td>
+        <td class="text-end fw-bold">${{ '%.2f'|format(f.total|float) }}</td>
+        <td class="text-center">
+          <a href="{{ url_for('facturas.descargar_pdf', factura_id=f.id) }}"
+             class="btn btn-sm btn-outline-danger me-1" title="Descargar PDF">
+            <i class="bi bi-file-pdf"></i>
+          </a>
+          <a href="{{ url_for('facturas.descargar_xml', factura_id=f.id) }}"
+             class="btn btn-sm btn-outline-warning" title="Descargar XML">
+            <i class="bi bi-file-code"></i>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="text-center text-muted py-4">
+          <i class="bi bi-inbox fs-4"></i><br>No hay facturas emitidas.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

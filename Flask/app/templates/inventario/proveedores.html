@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Proveedores — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-truck"></i> Proveedores</h2>
+  <a href="{{ url_for('inventario.proveedor_nuevo') }}" class="btn btn-danger">
+    <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+  </a>
+</div>
+
+<div class="table-card">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>RFC</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+        <th>Dirección</th>
+        <th class="text-center">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in proveedores %}
+      <tr>
+        <td class="fw-bold">{{ p.nombre }}</td>
+        <td><code>{{ p.rfc }}</code></td>
+        <td>{{ p.telefono or '—' }}</td>
+        <td>{{ p.email or '—' }}</td>
+        <td class="small text-muted">{{ p.direccion or '—' }}</td>
+        <td class="text-center">
+          <a href="{{ url_for('inventario.proveedor_editar', pid=p.id) }}"
+             class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil"></i>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="text-center text-muted py-4">
+          <i class="bi bi-inbox fs-4"></i><br>No hay proveedores registrados.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

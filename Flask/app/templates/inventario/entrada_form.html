@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Nueva Entrada de Inventario — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-arrow-down-circle"></i> Nueva Entrada de Inventario</h2>
+  <a href="{{ url_for('inventario.entradas') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('inventario.entrada_nueva') }}">
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Proveedor *</label>
+          <select name="proveedor_id" class="form-select" required>
+            <option value="">— Seleccionar proveedor —</option>
+            {% for p in proveedores %}
+              <option value="{{ p.id }}">{{ p.nombre }} ({{ p.rfc }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Observaciones</label>
+          <input type="text" name="observaciones" class="form-control"
+                 placeholder="Notas de la entrada...">
+        </div>
+      </div>
+
+      <!-- Product lines -->
+      <h6 class="fw-bold mb-3"><i class="bi bi-list-ul"></i> Productos Recibidos</h6>
+      <div class="table-responsive mb-3">
+        <table class="table table-bordered align-middle" id="detalleTable">
+          <thead class="table-dark">
+            <tr>
+              <th>Producto</th>
+              <th style="width:110px">Cantidad</th>
+              <th style="width:140px">Costo Unitario</th>
+              <th style="width:130px">Subtotal</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="detalleBody">
+            <tr id="rowTemplate" class="detalle-row">
+              <td>
+                <select name="producto_id[]" class="form-select form-select-sm" required>
+                  <option value="">— Producto —</option>
+                  {% for p in productos %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <input type="number" name="cantidad[]" class="form-control form-control-sm qty"
+                       min="1" required placeholder="0" oninput="calcRow(this)">
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">$</span>
+                  <input type="number" name="costo_unitario[]"
+                         class="form-control cost" step="0.01" min="0"
+                         required placeholder="0.00" oninput="calcRow(this)">
+                </div>
+              </td>
+              <td class="subtotal fw-bold">$0.00</td>
+              <td>
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                        onclick="removeRow(this)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+                onclick="addRow()">
+          <i class="bi bi-plus-circle"></i> Agregar Producto
+        </button>
+        <div class="fs-5 fw-bold">
+          Total: <span id="grandTotal" class="text-danger">$0.00</span>
+        </div>
+      </div>
+
+      <div class="d-grid">
+        <button type="submit" class="btn btn-danger btn-lg">
+          <i class="bi bi-floppy"></i> Registrar Entrada
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function calcRow(input) {
+  const row = input.closest('tr');
+  const qty = parseFloat(row.querySelector('.qty').value) || 0;
+  const cost = parseFloat(row.querySelector('.cost').value) || 0;
+  row.querySelector('.subtotal').textContent = `$${(qty * cost).toFixed(2)}`;
+  calcTotal();
+}
+
+function calcTotal() {
+  let total = 0;
+  document.querySelectorAll('.subtotal').forEach(el => {
+    total += parseFloat(el.textContent.replace('$', '')) || 0;
+  });
+  document.getElementById('grandTotal').textContent = `$${total.toFixed(2)}`;
+}
+
+function addRow() {
+  const tbody = document.getElementById('detalleBody');
+  const template = document.getElementById('rowTemplate');
+  const clone = template.cloneNode(true);
+  clone.removeAttribute('id');
+  // Reset values
+  clone.querySelectorAll('input').forEach(i => i.value = '');
+  clone.querySelector('.subtotal').textContent = '$0.00';
+  tbody.appendChild(clone);
+}
+
+function removeRow(btn) {
+  const rows = document.querySelectorAll('.detalle-row');
+  if (rows.length <= 1) { alert('Debe haber al menos un producto.'); return; }
+  btn.closest('tr').remove();
+  calcTotal();
+}
+</script>
+{% endblock %}

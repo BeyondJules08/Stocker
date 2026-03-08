@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Factura {{ factura.folio_fiscal[:8] }} — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-file-earmark-text"></i> Detalle de Factura</h2>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('facturas.descargar_pdf', factura_id=factura.id) }}"
+       class="btn btn-danger">
+      <i class="bi bi-file-pdf"></i> PDF
+    </a>
+    <a href="{{ url_for('facturas.descargar_xml', factura_id=factura.id) }}"
+       class="btn btn-warning">
+      <i class="bi bi-file-code"></i> XML
+    </a>
+    <a href="{{ url_for('facturas.index') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Volver
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-dark text-white">
+        <i class="bi bi-info-circle"></i> Datos del Comprobante
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Folio Fiscal</dt>
+          <dd class="col-sm-7"><code style="font-size:.75rem">{{ factura.folio_fiscal }}</code></dd>
+          <dt class="col-sm-5">Fecha Emisión</dt>
+          <dd class="col-sm-7">{{ factura.fecha_emision.strftime('%d/%m/%Y %H:%M:%S') }}</dd>
+          <dt class="col-sm-5">Folio Venta</dt>
+          <dd class="col-sm-7"><code>{{ factura.venta.folio }}</code></dd>
+          <dt class="col-sm-5">Método Pago</dt>
+          <dd class="col-sm-7">{{ factura.venta.metodo_pago }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-dark text-white">
+        <i class="bi bi-person"></i> Receptor
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Razón Social</dt>
+          <dd class="col-sm-7">{{ factura.cliente.razon_social }}</dd>
+          <dt class="col-sm-5">RFC</dt>
+          <dd class="col-sm-7">{{ factura.cliente.rfc }}</dd>
+          <dt class="col-sm-5">Régimen</dt>
+          <dd class="col-sm-7">{{ factura.cliente.regimen_fiscal }}</dd>
+          <dt class="col-sm-5">Uso CFDI</dt>
+          <dd class="col-sm-7">{{ factura.cliente.uso_cfdi }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="table-card mt-3">
+  <table class="table align-middle mb-0">
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th class="text-center">Cantidad</th>
+        <th class="text-end">P. Unitario</th>
+        <th class="text-end">Importe</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in factura.venta.detalles %}
+      <tr>
+        <td>{{ d.producto.nombre }}</td>
+        <td class="text-center">{{ d.cantidad }}</td>
+        <td class="text-end">${{ '%.2f'|format(d.precio_unitario|float) }}</td>
+        <td class="text-end">${{ '%.2f'|format(d.subtotal|float) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="table-light fw-bold">
+      <tr>
+        <td colspan="3" class="text-end">Subtotal</td>
+        <td class="text-end">${{ '%.2f'|format(factura.subtotal|float) }}</td>
+      </tr>
+      <tr>
+        <td colspan="3" class="text-end">IVA (16%)</td>
+        <td class="text-end">${{ '%.2f'|format(factura.iva|float) }}</td>
+      </tr>
+      <tr>
+        <td colspan="3" class="text-end fs-5">TOTAL</td>
+        <td class="text-end fs-5 text-danger">${{ '%.2f'|format(factura.total|float) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Cierre de Caja — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-cash-stack"></i> Cierre de Caja</h2>
+  <a href="{{ url_for('cierre.nuevo') }}" class="btn btn-danger">
+    <i class="bi bi-plus-circle"></i> Nuevo Cierre
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-dark text-white">
+        <i class="bi bi-bar-chart"></i> Ventas últimos 7 días
+      </div>
+      <div class="card-body">
+        <canvas id="ventasChart" height="80"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="table-card">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Cajero</th>
+        <th class="text-end">Efectivo</th>
+        <th class="text-end">Tarjeta</th>
+        <th class="text-end">Total Ventas</th>
+        <th class="text-end">Efectivo Contado</th>
+        <th class="text-end">Diferencia</th>
+        <th># Tx</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cierres %}
+      <tr>
+        <td>{{ c.fecha.strftime('%d/%m/%Y') }}</td>
+        <td>{{ c.usuario.nombre }}</td>
+        <td class="text-end">${{ '%.2f'|format(c.total_ventas_efectivo|float) }}</td>
+        <td class="text-end">${{ '%.2f'|format(c.total_ventas_tarjeta|float) }}</td>
+        <td class="text-end fw-bold">${{ '%.2f'|format(c.total_ventas|float) }}</td>
+        <td class="text-end">${{ '%.2f'|format(c.efectivo_contado|float) }}</td>
+        <td class="text-end fw-bold
+          {% if c.diferencia|float == 0 %}text-success
+          {% elif c.diferencia|float < 0 %}text-danger
+          {% else %}text-warning{% endif %}">
+          ${{ '%.2f'|format(c.diferencia|float) }}
+        </td>
+        <td>{{ c.num_transacciones }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">
+          <i class="bi bi-inbox fs-4"></i><br>No hay cierres registrados.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const labels = {{ chart_labels|safe }};
+const data   = {{ chart_data|safe }};
+
+new Chart(document.getElementById('ventasChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Ventas ($)',
+      data,
+      backgroundColor: 'rgba(233, 69, 96, 0.7)',
+      borderColor: '#e94560',
+      borderWidth: 1,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString() } }
+    }
+  }
+});
+</script>
+{% endblock %}

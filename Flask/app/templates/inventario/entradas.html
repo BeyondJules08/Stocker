@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Entradas de Inventario — Stocker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-arrow-down-circle"></i> Entradas de Inventario</h2>
+  <a href="{{ url_for('inventario.entrada_nueva') }}" class="btn btn-danger">
+    <i class="bi bi-plus-circle"></i> Nueva Entrada
+  </a>
+</div>
+
+<div class="table-card">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Folio</th>
+        <th>Fecha</th>
+        <th>Proveedor</th>
+        <th>Registrado por</th>
+        <th class="text-end">Total</th>
+        <th class="text-center">Productos</th>
+        <th>Observaciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entradas %}
+      <tr>
+        <td><code>{{ e.folio }}</code></td>
+        <td>{{ e.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ e.proveedor.nombre }}</td>
+        <td>{{ e.usuario.nombre }}</td>
+        <td class="text-end fw-bold">${{ '%.2f'|format(e.total|float) }}</td>
+        <td class="text-center">
+          <span class="badge bg-primary">{{ e.detalles|length }} ítem(s)</span>
+        </td>
+        <td class="text-muted small">{{ e.observaciones or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="text-center text-muted py-4">
+          <i class="bi bi-inbox fs-4"></i><br>No hay entradas registradas.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
