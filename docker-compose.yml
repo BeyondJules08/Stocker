@@ -84,6 +84,22 @@ services:
       - laravel_storage:/var/www/storage
     restart: unless-stopped
 
+  # ── FastAPI — REST API Layer ────────────────────────────────
+  fastapi:
+    build:
+      context: ./API
+      dockerfile: Dockerfile
+    container_name: stocker_api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: mysql+pymysql://stocker:stocker123@db:3306/stocker
+      SECRET_KEY: stocker-api-secret-change-in-prod
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   # ── Nginx — proxy para Laravel ─────────────────────────────
   nginx:
     image: docker.io/library/nginx:alpine
