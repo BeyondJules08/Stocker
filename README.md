@@ -1,12 +1,12 @@
 # Stocker — Sistema de Gestión Comercial
 
-Sistema web para centralizar el ciclo de venta de un negocio, desde que el producto entra al almacén hasta que se entrega la factura al cliente. Permite al dueño del negocio tomar decisiones basadas en reportes financieros.
+Sistema web para centralizar el ciclo de venta de un negocio, desde que el producto entra al almacén hasta que se entrega la factura al cliente. Permite al dueño del negocio tomar decisiones basadas en reportes financieros y predicciones de demanda por inteligencia artificial.
 
 ---
 
 ## Arquitectura del Sistema
 
-El proyecto está compuesto por **dos aplicaciones web independientes** que comparten una base de datos MySQL.
+El proyecto está compuesto por **tres aplicaciones web independientes** que comparten una base de datos MySQL.
 
 ```
 Stocker/
@@ -14,6 +14,7 @@ Stocker/
 ├── Laravel/                # Panel gerencial (PHP/Laravel) → Puerto 8080
 │   ├── stocker-admin/      # Proyecto Laravel
 │   └── nginx.conf          # Proxy Nginx para Laravel
+├── API/                    # REST API (FastAPI)            → Puerto 8000
 ├── database/
 │   └── init.sql            # Esquema MySQL + datos semilla
 └── docker-compose.yml      # Orquestación completa
@@ -23,6 +24,7 @@ Stocker/
 |---|---|---|---|
 | Flask | Python 3.12 + Flask 3.1 | 5000 | Operativo, Almacén |
 | Laravel | PHP 8.4 + Laravel 12 + Nginx | 8080 | Gerente |
+| FastAPI | Python 3.12 + FastAPI | 8000 | API REST |
 | MySQL | MySQL 8.0 | 3306 | (compartida) |
 
 ---
@@ -57,12 +59,62 @@ Stocker/
 | **Productos Más Vendidos** | Top 10 con gráfica horizontal, unidades e ingresos por producto |
 | **Gráfica Mensual** | Comparativa de Ventas vs Gastos (entradas de inventario) en los últimos 12 meses, tabla de utilidad bruta y margen |
 | **Cierres de Caja** | Historial de cierres con filtros, diferencias color-coded (verde/rojo/amarillo) |
+| **Pronóstico de Demanda** | Predicción de demanda diaria por producto mediante Regresión Lineal Múltiple (ver sección ML) |
+
+---
+
+## Módulo de IA — Pronóstico de Demanda
+
+El panel gerencial incluye un módulo de machine learning que predice cuántas unidades se venderán diariamente por producto, usando datos reales de ventas del sistema.
+
+### Cómo funciona
+
+1. **Entrenamiento** — `train_model.py` consulta las tablas reales `ventas`, `detalle_venta`, `productos` y `categorias` para construir el dataset de entrenamiento. Si hay menos de 50 registros reales, complementa automáticamente con datos sintéticos basados en el catálogo real (precios, categorías y niveles de stock actuales).
+
+2. **Predicción** — El endpoint `/api/ml/prediccion` consulta todos los productos activos del catálogo en tiempo real y predice la demanda diaria para cada uno usando el modelo entrenado. **Cualquier producto nuevo aparece en las predicciones en el siguiente reentrenamiento.**
+
+3. **Reentrenamiento** — El gerente puede reentrenar el modelo desde la UI con el botón **"Reentrenar modelo"**, que llama al endpoint `/api/ml/retrain`. A medida que se acumulan ventas reales, la precisión del modelo mejora.
+
+### Datos de entrenamiento
+
+| Fuente | Cuándo se usa |
+|---|---|
+| `real` | ≥ 50 registros de ventas reales |
+| `mixta` | < 50 ventas reales → combina reales + sintéticos del catálogo |
+| `sintetica` | Sin ventas registradas → 100% sintéticos del catálogo real |
+
+### Features del modelo
+
+| Feature | Origen |
+|---|---|
+| `precio` | `productos.precio_venta` |
+| `nivel_inventario` | `productos.stock_actual` |
+| `stock_minimo` | `productos.stock_minimo` |
+| `categoria` | `categorias.nombre` (codificado con LabelEncoder) |
+| `dia_semana` | Día de la semana (1=Lun … 7=Dom) |
+| `mes` | Mes del año (1–12) |
+
+### Métricas mostradas
+
+- **R²** — porcentaje de varianza explicada por el modelo
+- **MAE** — error promedio en unidades
+- **Días de cobertura** — `stock_actual / prediccion_diaria` por producto
+- **Alertas**: Urgente (< 3 días), Reabastecer (< 7 días), OK
+
+### Primer arranque del módulo ML
+
+```bash
+# Entrenar el modelo (dentro del contenedor Flask)
+docker compose exec flask python train_model.py
+```
+
+No es necesario ningún script de semilla adicional; `train_model.py` genera los datos sintéticos internamente a partir del catálogo real.
 
 ---
 
 ## Requisitos
 
-- [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/)
+- [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/) — o [Podman](https://podman.io/) + podman-compose
 - Git
 
 ---
@@ -79,14 +131,19 @@ cd Stocker
 ### 2. Construir y levantar los contenedores
 
 ```bash
+# Docker
 docker compose up -d --build
+
+# Podman
+podman compose up -d --build
 ```
 
-Esto levanta cuatro contenedores:
+Esto levanta cinco contenedores:
 - `stocker_db` — MySQL 8.0 (inicializa el esquema y los datos semilla automáticamente)
-- `stocker_flask` — Aplicación Flask
-- `stocker_laravel` — PHP-FPM con Laravel
+- `stocker_flask` — Aplicación Flask (POS + Almacén)
+- `stocker_laravel` — PHP-FPM con Laravel (panel gerencial)
 - `stocker_nginx` — Proxy Nginx para Laravel
+- `stocker_api` — REST API FastAPI
 
 > La primera vez tarda varios minutos mientras se descargan las imágenes base y se instalan las dependencias.
 
@@ -98,7 +155,7 @@ MySQL puede tardar ~30 segundos en estar disponible. Puedes verificarlo con:
 docker compose exec db mysqladmin ping -h localhost -u stocker -pstocker123
 ```
 
-Cuando responda `mysqladmin: [Warning] ...  mysqld is alive`, continúa.
+Cuando responda `mysqld is alive`, continúa.
 
 ### 4. Ejecutar las migraciones de Laravel
 
@@ -124,13 +181,20 @@ El `init.sql` incluye hashes de contraseña provisionales. Este comando los reem
 docker compose exec flask python seed_passwords.py
 ```
 
-### 7. Acceder a los sistemas
+### 7. Entrenar el modelo de IA
+
+```bash
+docker compose exec flask python train_model.py
+```
+
+### 8. Acceder a los sistemas
 
 | Sistema | URL | Usuario | Contraseña |
 |---|---|---|---|
 | Flask (Operativo) | http://localhost:5000 | operativo@stocker.com | `Operativo1!` |
 | Flask (Almacén) | http://localhost:5000 | almacen@stocker.com | `Almacen1!` |
 | Laravel (Gerente) | http://localhost:8080 | gerente@stocker.com | `Admin123!` |
+| FastAPI (REST) | http://localhost:8000/docs | — | — |
 
 ---
 
@@ -150,6 +214,14 @@ docker compose logs -f db
 docker compose restart flask
 docker compose restart laravel
 ```
+
+### Reentrenar el modelo de IA manualmente
+
+```bash
+docker compose exec flask python train_model.py
+```
+
+O desde la UI: **Laravel → Pronóstico de Demanda → "Reentrenar modelo"**.
 
 ### Detener todo sin borrar datos
 
@@ -211,6 +283,7 @@ La base de datos `stocker` se inicializa automáticamente con `database/init.sql
 - Flask-Login (autenticación por sesión)
 - ReportLab (generación de PDF — tickets y facturas)
 - `xml.etree.ElementTree` (generación de XML CFDI 4.0 simulado)
+- scikit-learn + pandas + numpy + joblib (módulo ML)
 - Bootstrap 5.3 + Bootstrap Icons + Chart.js (UI)
 
 **Laravel**
@@ -220,10 +293,15 @@ La base de datos `stocker` se inicializa automáticamente con `database/init.sql
 - Bootstrap 5.3 + Bootstrap Icons + Chart.js (UI)
 - Nginx (servidor web / proxy)
 
+**FastAPI**
+- Python 3.12 / FastAPI
+- SQLAlchemy + PyMySQL
+- Uvicorn (servidor ASGI)
+
 **Infraestructura**
 - MySQL 8.0
 - Podman / Docker + Compose
-- Volúmenes persistentes para MySQL, uploads y documentos generados
+- Volúmenes persistentes para MySQL, uploads, documentos generados y modelos ML
 
 ---
 
@@ -242,6 +320,7 @@ Stocker/
 │   ├── run.py                          # Punto de entrada
 │   ├── config.py                       # Configuración (DB, rutas, claves)
 │   ├── seed_passwords.py               # Script de inicialización de contraseñas
+│   ├── train_model.py                  # Entrenamiento del modelo ML (datos reales + fallback sintético)
 │   └── app/
 │       ├── __init__.py                 # App factory
 │       ├── models.py                   # Modelos SQLAlchemy
@@ -250,12 +329,16 @@ Stocker/
 │       │   ├── ventas.py               # POS y ventas
 │       │   ├── facturas.py             # Facturación CFDI
 │       │   ├── cierre_caja.py          # Cierre de caja diario
-│       │   └── inventario.py           # Productos, proveedores, entradas
+│       │   ├── inventario.py           # Productos, proveedores, entradas
+│       │   └── ml.py                   # Endpoints ML (/api/ml/prediccion, /api/ml/retrain)
 │       ├── templates/                  # Plantillas Jinja2 (Bootstrap 5)
 │       ├── static/                     # CSS, uploads, documentos generados
 │       └── utils/
 │           ├── pdf_generator.py        # Tickets y facturas PDF (ReportLab)
 │           └── xml_generator.py        # XML CFDI 4.0 simulado
+│
+├── API/                                # REST API FastAPI
+│   └── Dockerfile
 │
 └── Laravel/
     ├── nginx.conf                      # Configuración Nginx
@@ -266,7 +349,8 @@ Stocker/
         │   ├── Http/
         │   │   ├── Controllers/
         │   │   │   ├── Auth/LoginController.php
-        │   │   │   └── Reportes/ReportesController.php
+        │   │   │   ├── Reportes/ReportesController.php
+        │   │   │   └── Predicciones/PrediccionesController.php  # Consume ML API + acción retrain
         │   │   └── Middleware/GerenteMiddleware.php
         │   └── Models/                 # Eloquent models (Venta, Producto, etc.)
         ├── database/
@@ -275,5 +359,6 @@ Stocker/
         └── resources/views/
             ├── layouts/app.blade.php   # Layout base con sidebar
             ├── auth/login.blade.php
-            └── reportes/               # Dashboard, ventas, productos, mensual, cierres
+            ├── reportes/               # Dashboard, ventas, productos, mensual, cierres
+            └── predicciones/           # Pronóstico de demanda ML
 ```

@@ -76,7 +76,12 @@
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <p class="sidebar-section">REPORTES</p>
+    <p class="sidebar-section">INTELIGENCIA ARTIFICIAL</p>
+    <a href="{{ route('predicciones.index') }}"
+       class="nav-link {{ request()->routeIs('predicciones.*') ? 'active' : '' }}">
+      <i class="bi bi-cpu"></i> Pronóstico de Demanda
+    </a>
+    <p class="sidebar-section mt-2">REPORTES</p>
     <a href="{{ route('reportes.index') }}"
        class="nav-link {{ request()->routeIs('reportes.index') ? 'active' : '' }}">
       <i class="bi bi-speedometer2"></i> Dashboard

@@ -26,11 +26,13 @@ def create_app():
     from app.routes.facturas import facturas_bp
     from app.routes.cierre_caja import cierre_bp
     from app.routes.inventario import inventario_bp
+    from app.routes.ml import ml_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(ventas_bp, url_prefix='/ventas')
     app.register_blueprint(facturas_bp, url_prefix='/facturas')
     app.register_blueprint(cierre_bp, url_prefix='/cierre-caja')
     app.register_blueprint(inventario_bp, url_prefix='/inventario')
+    app.register_blueprint(ml_bp)
 
     return app

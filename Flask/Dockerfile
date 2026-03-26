@@ -9,6 +9,9 @@ COPY . .
 
 RUN mkdir -p app/static/uploads app/static/documentos
 
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 EXPOSE 5000
 
-CMD ["python", "run.py"]
+CMD ["./entrypoint.sh"]

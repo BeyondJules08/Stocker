@@ -57,6 +57,7 @@ services:
     volumes:
       - flask_uploads:/app/app/static/uploads
       - flask_docs:/app/app/static/documentos
+      - flask_models:/app/models
     restart: unless-stopped
 
   # ── Laravel PHP-FPM — Panel Gerencial ──────────────────────
@@ -77,6 +78,7 @@ services:
       DB_USERNAME: stocker
       DB_PASSWORD: stocker123
       SESSION_DRIVER: file
+      FLASK_URL: http://flask:5000
     depends_on:
       db:
         condition: service_healthy
@@ -117,4 +119,5 @@ volumes:
   mysql_data:
   flask_uploads:
   flask_docs:
+  flask_models:
   laravel_storage:

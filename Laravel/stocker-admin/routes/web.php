@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Predicciones\PrediccionesController;
 use App\Http\Controllers\Reportes\ReportesController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,5 +27,10 @@ Route::middleware(['auth', 'gerente'])->group(function () {
              ->name('mensual');
         Route::get('/cierres-caja',         [ReportesController::class, 'cierresCaja'])
              ->name('cierres');
+    });
+
+    Route::prefix('predicciones')->name('predicciones.')->group(function () {
+        Route::get('/',       [PrediccionesController::class, 'index'])->name('index');
+        Route::post('/retrain', [PrediccionesController::class, 'retrain'])->name('retrain');
     });
 });
