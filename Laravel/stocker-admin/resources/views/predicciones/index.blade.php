@@ -27,7 +27,7 @@
 <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
   <h2 class="mb-0">
     <i class="bi bi-cpu me-2"></i>Pronóstico de Demanda
-    <small class="text-muted fs-6 fw-normal">Regresión Lineal Múltiple</small>
+    <small class="text-muted fs-6 fw-normal">Random Forest</small>
   </h2>
 
   @if(!$error)
