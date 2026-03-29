@@ -1,5 +1,3 @@
-version: '3.9'
-
 # ============================================================
 # Stocker — Compose principal
 # Levanta: MySQL compartido + Flask (puerto 5000) + Laravel/Nginx (puerto 8080)

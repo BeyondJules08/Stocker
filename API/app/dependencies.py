@@ -13,7 +13,7 @@ from app.schemas import TokenData
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "stocker-api-secret-change-in-prod")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 400  # 6 hours and 40 minutes
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
