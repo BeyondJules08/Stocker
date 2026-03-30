@@ -70,6 +70,22 @@ body {
   margin-left: 240px;
   padding: 80px 28px 28px;
   min-height: 100vh;
+  transition: margin-left .3s ease;
+}
+
+@media (max-width: 991.98px) {
+  .sidebar {
+    left: -240px;
+    transition: left .3s ease;
+  }
+  .sidebar.show {
+    left: 0;
+  }
+  .main-content {
+    margin-left: 0;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
 }
 
 /* ── Cards ───────────────────────────────────────────────── */
@@ -97,7 +113,7 @@ body {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,.07);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .table-card .table {

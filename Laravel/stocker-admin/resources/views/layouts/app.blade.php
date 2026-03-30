@@ -35,7 +35,14 @@
       font-size: .7rem; letter-spacing: 1px; text-transform: uppercase;
       color: rgba(255,255,255,.35); padding: 6px 20px 2px; margin: 0;
     }
-    .main-content { margin-left: 240px; padding: 80px 28px 28px; min-height: 100vh; }
+    .main-content { margin-left: 240px; padding: 80px 28px 28px; min-height: 100vh; transition: margin-left .3s ease; }
+    
+    @media (max-width: 991.98px) {
+      .sidebar { left: -240px; transition: left .3s ease; }
+      .sidebar.show { left: 0; }
+      .main-content { margin-left: 0; padding-left: 15px; padding-right: 15px; }
+    }
+
     .stat-card {
       background: #fff; border-radius: 12px; padding: 20px 24px;
       box-shadow: 0 2px 8px rgba(0,0,0,.07); border-left: 4px solid #f5a623;
@@ -44,7 +51,7 @@
     .stat-card .label { font-size: .85rem; color: #6c757d; }
     .table-card {
       background: #fff; border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow-x: auto;
     }
     .table-card .table { margin: 0; }
     .table-card .table thead th {
@@ -59,8 +66,11 @@
 <body>
   <!-- Topbar -->
   <nav class="topbar">
+    <button class="btn text-white d-lg-none me-2" id="sidebar-toggle">
+      <i class="bi bi-list fs-4"></i>
+    </button>
     <span class="brand"><i class="bi bi-box-seam"></i> Stocker <small class="text-warning ms-2" style="font-size:.75rem">Panel Gerencial</small></span>
-    <div class="d-flex align-items: center; gap: 3; gap-3">
+    <div class="d-flex align-items-center gap-3">
       <span class="text-white-50 small">
         <i class="bi bi-person-circle"></i> {{ Auth::user()->name }}
         <span class="badge bg-warning text-dark ms-1">Gerente</span>
@@ -117,6 +127,15 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    const toggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    if (toggle && sidebar) {
+      toggle.addEventListener('click', () => {
+        sidebar.classList.toggle('show');
+      });
+    }
+  </script>
   @yield('scripts')
 </body>
 </html>
