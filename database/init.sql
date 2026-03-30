@@ -3,6 +3,7 @@
 -- ============================================================
 CREATE DATABASE IF NOT EXISTS stocker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE stocker;
+SET NAMES utf8mb4;
 
 -- ============================================================
 -- TABLE: roles

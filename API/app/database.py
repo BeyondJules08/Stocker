@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "mysql+pymysql://stocker:stocker123@db:3306/stocker",
+    "mysql+pymysql://stocker:stocker123@db:3306/stocker?charset=utf8mb4",
 )
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)

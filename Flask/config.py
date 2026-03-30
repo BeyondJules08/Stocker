@@ -7,7 +7,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'stocker-secret-key-change-in-prod')
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
-        'mysql+pymysql://stocker:stocker123@db:3306/stocker'
+        'mysql+pymysql://stocker:stocker123@db:3306/stocker?charset=utf8mb4'
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'app', 'static', 'uploads')
